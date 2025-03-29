@@ -4,8 +4,7 @@ This module allows uploading, validating and registering supplier invoices in a 
 
 ## Installation
 
-Prerequisites: You must have the Dolibarr ERP CRM software installed. You can down it from [Dolistore.org](https://www.dolibarr.org).
-You can also get a ready to use instance in the cloud from htts://saas.dolibarr.org
+Prerequisites: You must have the Dolibarr ERP CRM software installed.
 
 
 ### From the ZIP file and GUI interface
