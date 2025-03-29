@@ -1,6 +1,6 @@
 # UpInvoice Module for Dolibarr
 
-This module allows uploading, validating and registering supplier invoices in a three-step process using the UpInvoice API.
+This module allows uploading, validating and registering supplier invoices in a three-step process using the UpInvoice API (https://upinvoice.eu).
 
 ## Installation
 
