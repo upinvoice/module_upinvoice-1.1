@@ -42,7 +42,7 @@ Note: If this screen tell you that there is no "custom" directory, check that yo
 
 ## Usage
 
-After installation, you'll see a new "UpInvoice Import" menu in your Dolibarr top menu.
+After installation, you'll see a new "UpInvoice" menu in your Dolibarr top menu.
 
 1. **Step 1**: Upload supplier invoice files (PDF or images)
 2. **Step 2**: Validate or create the supplier
