@@ -1,5 +1,5 @@
 -- Table structure for table 'llx_upinvoice_files'
-CREATE TABLE llx_upinvoice_files (
+CREATE TABLE IF NOT EXISTS llx_upinvoice_files (
   rowid INT AUTO_INCREMENT PRIMARY KEY,
   entity INT DEFAULT 1 NOT NULL,
   file_path VARCHAR(255) NOT NULL,
