@@ -82,7 +82,7 @@ if (empty($apiKey)) {
     print '<div class="warning">';
     print $langs->trans("WarningUpInvoiceAPIKeyNotConfigured");
     if ($user->admin) {
-        print ' <a href="' . DOL_URL_ROOT . '/admin/modules.php?search_name=upinvoiceimport">' . $langs->trans("GoToModuleSetup") . '</a>';
+        print ' <a href="' . dol_buildpath('/upinvoice/admin/setup.php',1) . '">' . $langs->trans("GoToModuleSetup") . '</a>';
     }
     print '</div>';
 }
