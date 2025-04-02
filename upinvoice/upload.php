@@ -76,6 +76,17 @@ llxHeader('', $langs->trans($page_name), $help_url, '', 0, 0, $morejs, $morecss)
 
 print load_fiche_titre($langs->trans($page_name), '', 'title_setup');
 
+// Check if UpInvoice API key is configured
+$apiKey = $conf->global->UPINVOICE_API_KEY;
+if (empty($apiKey)) {
+    print '<div class="warning">';
+    print $langs->trans("WarningUpInvoiceAPIKeyNotConfigured");
+    if ($user->admin) {
+        print ' <a href="' . DOL_URL_ROOT . '/admin/modules.php?search_name=upinvoiceimport">' . $langs->trans("GoToModuleSetup") . '</a>';
+    }
+    print '</div>';
+}
+
 // Start container
 print '<div class="upinvoiceimport-container">';
 
