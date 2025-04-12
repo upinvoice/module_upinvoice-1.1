@@ -2,7 +2,9 @@
 /* Copyright (C) 2023
  * Licensed under the GNU General Public License version 3
  */
-
+if (!defined('NOCSRFCHECK')) {
+    define('NOCSRFCHECK', '1'); // Disable CSRF check for this script
+}
 if (!defined('NOTOKENRENEWAL')) {
 	define('NOTOKENRENEWAL', '1'); // Disables token renewal
 }
@@ -48,6 +50,9 @@ if (!$res) {
 	die("Include of main fails");
 }
 
+// Load translation files required by the page
+$langs->loadLangs(array('upinvoice@upinvoice'));
+
 require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
 require_once '../class/upinvoicefiles.class.php';
 
@@ -74,9 +79,6 @@ $upload_dir = DOL_DATA_ROOT . '/upinvoice/temp';
 if (!dol_is_dir($upload_dir)) {
     dol_mkdir($upload_dir);
 }
-
-// Set file name validation regex
-$pattern = '/^[\w\s\-\.]+$/';
 
 // Initialize return array
 $result = array(
@@ -108,16 +110,6 @@ if (isset($_FILES['userfile']) && is_array($_FILES['userfile']['name'])) {
             continue;
         }
         
-        // Validate file name
-        if (!preg_match($pattern, $originalFileName)) {
-            $result['files'][] = array(
-                'name' => $originalFileName,
-                'status' => 'error',
-                'message' => $langs->trans('InvalidFileName')
-            );
-            continue;
-        }
-        
         // Validate file type (only PDF and images allowed)
         $allowedTypes = array('application/pdf', 'image/jpeg', 'image/png', 'image/gif');
         if (!in_array($fileType, $allowedTypes)) {
@@ -129,25 +121,33 @@ if (isset($_FILES['userfile']) && is_array($_FILES['userfile']['name'])) {
             continue;
         }
         
-        // Generate a unique filename
-        $filename = dol_sanitizeFileName($originalFileName);
-        $filename = preg_replace('/\.pdf$/i', '', $filename); // Remove extension
-        $filename = preg_replace('/\.(jpe?g|png|gif)$/i', '', $filename); // Remove extension
-        $filename = $filename . '_' . dol_print_date(dol_now(), 'dayhourlog') . '_' . substr(md5(uniqid()), 0, 8);
+        // Sanitize filename properly for storage
+        // We'll keep the original filename in the database but sanitize it for actual storage
+        $sanitizedFileName = dol_sanitizeFileName($originalFileName);
         
-        // Add extension back
+        // Generate a unique filename for storage (irrespective of original characters)
+        $uniqueFilename = pathinfo($sanitizedFileName, PATHINFO_FILENAME); // Get filename without extension
+        $uniqueFilename = trim($uniqueFilename); // Remove spaces at beginning and end
+        
+        if (empty($uniqueFilename)) {
+            $uniqueFilename = 'file'; // Fallback if filename is empty after sanitization
+        }
+        
+        $uniqueFilename .= '_' . dol_print_date(dol_now(), 'dayhourlog') . '_' . substr(md5(uniqid()), 0, 8);
+        
+        // Add appropriate extension based on file type
         if (strpos($fileType, 'pdf') !== false) {
-            $filename .= '.pdf';
+            $uniqueFilename .= '.pdf';
         } elseif (strpos($fileType, 'jpeg') !== false || strpos($fileType, 'jpg') !== false) {
-            $filename .= '.jpg';
+            $uniqueFilename .= '.jpg';
         } elseif (strpos($fileType, 'png') !== false) {
-            $filename .= '.png';
+            $uniqueFilename .= '.png';
         } elseif (strpos($fileType, 'gif') !== false) {
-            $filename .= '.gif';
+            $uniqueFilename .= '.gif';
         }
         
         // Destination path
-        $dest_file = $upload_dir . '/' . $filename;
+        $dest_file = $upload_dir . '/' . $uniqueFilename;
         
         // Move file to destination
         $res = dol_move_uploaded_file($tmpName, $dest_file, 0, 0, 0, 0);
@@ -157,7 +157,7 @@ if (isset($_FILES['userfile']) && is_array($_FILES['userfile']['name'])) {
             // Create database record
             $upinvoicefiles = new UpInvoiceFiles($db);
             $upinvoicefiles->file_path = $dest_file;
-            $upinvoicefiles->original_filename = $originalFileName;
+            $upinvoicefiles->original_filename = $originalFileName; // Keep original filename with special chars
             $upinvoicefiles->file_size = $fileSize;
             $upinvoicefiles->file_type = $fileType;
             $upinvoicefiles->import_step = 1;

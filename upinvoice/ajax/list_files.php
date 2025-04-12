@@ -2,7 +2,9 @@
 /* Copyright (C) 2023
  * Licensed under the GNU General Public License version 3
  */
-
+if (!defined('NOCSRFCHECK')) {
+    define('NOCSRFCHECK', '1'); // Disable CSRF check for this script
+}
 if (!defined('NOTOKENRENEWAL')) {
 	define('NOTOKENRENEWAL', '1'); // Disables token renewal
 }

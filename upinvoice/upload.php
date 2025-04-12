@@ -489,6 +489,11 @@ $(document).ready(function() {
             },
             success: function(response) {
                 try {
+                    // Si response no es JSON, por ejemplo, no contiene { como primer caracter, mostramos el string directamente
+                    if (response.charAt(0) !== '{') {
+                        showNotification('<i class="fas fa-exclamation-circle"></i> ' + response, 'error');
+                        return;
+                    }
                     var result = JSON.parse(response);
                     if (result.status === 'success') {
                         showNotification('<i class="fas fa-check-circle"></i> ' + '<?php echo $langs->trans('UploadComplete'); ?>', 'success');

@@ -548,8 +548,8 @@
 .alert-dismissible .close {
     position: absolute;
     top: 0;
-    right: 0;
-    padding: 0.75rem 1.25rem;
+    right: 1px;
+    padding: 8px;
     color: inherit;
 }
 
@@ -1254,12 +1254,13 @@ input[readonly] {
 }
 
 .preview-thumbnail {
-    height: 120px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #f9f9f9;
-    border-bottom: 1px solid #eee;
+    background-color: transparent;
+    border-bottom:
+    1px solid #eee;
 }
 
 .preview-thumbnail i {
@@ -1350,7 +1351,7 @@ input[readonly] {
 
 .tab-content {
     display: none;
-    padding: 20px 0;
+    padding: 0;
 }
 
 .tab-content.active {
@@ -1411,6 +1412,9 @@ input[readonly] {
 .file-name {
     font-weight: bold;
     margin-bottom: 5px;
+}
+.file-card .file-name {
+    max-width: 83%;
 }
 
 .file-meta {
@@ -1567,6 +1571,11 @@ input[readonly] {
 .upinvoiceimport-files-container table.noborder td.right {
     padding: 0;
     height: 47px;
+}
+.upinvoiceimport-files-container .info-box {
+    min-height: auto;
+    border: 0;
+    box-shadow: none;
 }
 
 /* Estilos para vista tabular de archivos finalizados */

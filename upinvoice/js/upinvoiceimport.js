@@ -8,6 +8,9 @@ var upinvoiceLoadFilesListFunction;
 // Flag to track if processing is currently active
 var isProcessingActive = false;
 
+// Flag to track if a delete confirmation is active
+var isDeleteConfirmationActive = false;
+
 // Track AJAX requests so they can be aborted if needed
 var activeAjaxRequests = {};
 
@@ -33,7 +36,7 @@ function showNotification(message, type = 'info', container = '#upload-results')
         $(container).find('.alert').fadeOut(500, function() {
             $(this).remove();
         });
-    }, 5000);
+    }, 15000);
 }
 
 // Format file size in human-readable format
@@ -318,6 +321,13 @@ function goToNextStep(fileId) {
 
 // Handle file delete confirmation
 function confirmDeleteFile(fileId, callback) {
+    // Prevenir múltiples confirmaciones simultáneas
+    if (isDeleteConfirmationActive) {
+        return;
+    }
+    
+    isDeleteConfirmationActive = true;
+    
     if (confirm(upinvoiceimport_langs.ConfirmDeleteFile)) {
         $.ajax({
             url: upinvoiceimport_root + '/ajax/delete_file.php',
@@ -327,6 +337,7 @@ function confirmDeleteFile(fileId, callback) {
                 token: upinvoiceimport_token
             },
             success: function(response) {
+                isDeleteConfirmationActive = false;
                 try {
                     const result = JSON.parse(response);
                     if (result.status === 'success') {
@@ -354,12 +365,18 @@ function confirmDeleteFile(fileId, callback) {
                 }
             },
             error: function(xhr, status, error) {
+                isDeleteConfirmationActive = false;
                 showNotification(upinvoiceimport_langs.DeleteFailed + ': ' + error, 'error');
                 if (typeof callback === 'function') {
                     callback(false);
                 }
             }
         });
+    } else {
+        isDeleteConfirmationActive = false;
+        if (typeof callback === 'function') {
+            callback(false);
+        }
     }
 }
 
@@ -569,8 +586,8 @@ function loadFilesList() {
                             $('#finished-files-list').html(result.html);
                         }
                         
-                        // Setup process button events
-                        $('.process-file-btn').on('click', function() {
+                        // Setup process button events - Use delegated events to avoid duplicates
+                        $('#pending-files-list').off('click', '.process-file-btn').on('click', '.process-file-btn', function() {
                             var fileId = $(this).data('file-id');
                             if (!isProcessingActive) {
                                 processFile(fileId);
@@ -579,15 +596,15 @@ function loadFilesList() {
                             }
                         });
                         
-                        // Setup delete button events
-                        $('.delete-file-btn').on('click', function(e) {
+                        // Setup delete button events - Use delegated events to avoid duplicates
+                        $('#pending-files-list, #finished-files-list').off('click', '.delete-file-btn').on('click', '.delete-file-btn', function(e) {
                             e.preventDefault();
                             var fileId = $(this).data('file-id');
                             confirmDeleteFile(fileId);
                         });
                         
-                        // Setup thumbnail click events
-                        $('.file-thumbnail').on('click', function() {
+                        // Setup thumbnail click events - Use delegated events
+                        $('#pending-files-list, #finished-files-list').off('click', '.file-thumbnail').on('click', '.file-thumbnail', function() {
                             var fileId = $(this).data('file-id');
                             var fileName = $(this).data('file-name') || upinvoiceimport_langs.FilePreview;
                             var fileType = $(this).data('file-type') || '';
@@ -651,34 +668,6 @@ function loadFilesList() {
 
 // Document ready handler
 $(document).ready(function() {
-    // Use jQuery for all event handlers for better compatibility
-    $(document).on('click', '.delete-file-btn', function(e) {
-        e.preventDefault();
-        const fileId = $(this).data('file-id');
-        confirmDeleteFile(fileId);
-    });
-    
-    // Individual process file buttons
-    $(document).on('click', '.process-file-btn', function(e) {
-        e.preventDefault();
-        if (!$(this).prop('disabled') && !isProcessingActive) {
-            var fileId = $(this).data('file-id');
-            processFile(fileId);
-        } else if (isProcessingActive) {
-            showNotification('<i class="fas fa-info-circle"></i> ' + upinvoiceimport_langs.ProcessingInProgress, 'info');
-        }
-    });
-    
-    // File thumbnail click event for preview
-    $(document).on('click', '.file-thumbnail', function() {
-        var fileId = $(this).data('file-id');
-        var filePath = $(this).data('file-path');
-        var fileName = $(this).data('file-name') || 'File Preview';
-        var fileType = $(this).data('file-type') || '';
-        
-        toggleFilePreview(fileId, fileName, fileType, filePath);
-    });
-
     // Initialize modal system
     UpInvoiceModal.init();
     
