@@ -180,8 +180,8 @@ class UpInvoiceInvoice
         $tva_tx = isset($lineData['tva_tx']) ? price2num($lineData['tva_tx']) : 0;
         
         // Registra para depuración los valores que estás pasando
-        dol_syslog("addInvoiceLine: pu_ht=" . $pu_ht . ", qty=" . $qty . ", tva_tx=" . $tva_tx);
-        
+        dol_syslog("addInvoiceLine: pu_ht=" . $pu_ht . ", qty=" . $qty . ", tva_tx=" . $tva_tx . ", fk_product=" . $fk_product . ", product_type=" . $product_type);
+    
         return $invoice->addline(
             $desc,               // Description
             $pu_ht,              // Unit price HT (sin impuestos)

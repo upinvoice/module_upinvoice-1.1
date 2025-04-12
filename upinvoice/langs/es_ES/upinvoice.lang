@@ -69,6 +69,13 @@ FileAlreadyUploaded=Archivo ya subido
 DuplicateFilesSkipped=archivos duplicados omitidos
 AllFilesAreDuplicates=Todos los archivos ya están subidos
 
+# Confirmaciones
+ConfirmDeleteFile=¿Está seguro de que desea eliminar este archivo?
+ConfirmReplacePrice=¿Desea reemplazar el precio actual con el precio del producto?
+ConfirmReplaceVAT=¿Desea reemplazar la tasa de IVA actual con la del producto?
+Current=Actual
+New=Nuevo
+
 # Supplier validation
 SupplierValidation=Validación de Proveedor
 ProcessingFile=Procesando archivo
@@ -142,6 +149,34 @@ VATAmountMismatch=El importe del IVA no coincide
 TotalTTCMismatch=El total con IVA no coincide
 DateMismatch=La fecha no coincide
 LineCountMismatch=El número de líneas no coincide
+CompletionDate=Fecha de finalización
+TotalAmountWarning=Diferencia de importe detectada
+AmountDetected=Importe detectado
+AmountSaved=Importe guardado
+
+# Productos
+Product=Producto
+Service=Servicio
+Products=Productos
+Services=Servicios
+MatchingProduct=Producto encontrado
+SearchProduct=Buscar producto
+SelectProduct=Seleccionar producto
+NoProductsFound=No se encontraron productos
+EnterSearchTerm=Introduzca término de búsqueda
+SearchTermTooShort=Término de búsqueda demasiado corto
+ProductsFound=%s productos encontrados
+SearchTermRequired=Se requiere término de búsqueda
+All=Todos
+Search=Buscar
+Select=Seleccionar
+Reference=Referencia
+Label=Etiqueta
+Price=Precio
+VATRate=Tasa de IVA
+Actions=Acciones
+
+# Errores de API
 SupplierIdRequired=Se requiere ID de proveedor
 ErrorAddingInvoiceLine=Error al añadir línea de factura
 ErrorValidatingInvoice=Error al validar la factura

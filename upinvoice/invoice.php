@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2023
+/* Copyright (C) 2023-2025
  * Licensed under the GNU General Public License version 3
  */
 
@@ -7,32 +7,32 @@
 $res = 0;
 // Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
 if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) {
-	$res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
+    $res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
 }
 // Try main.inc.php into web root detected using web root calculated from SCRIPT_FILENAME
 $tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME']; $tmp2 = realpath(__FILE__); $i = strlen($tmp) - 1; $j = strlen($tmp2) - 1;
 while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) {
-	$i--;
-	$j--;
+    $i--;
+    $j--;
 }
 if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) {
-	$res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
+    $res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
 }
 if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) {
-	$res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
+    $res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
 }
 // Try main.inc.php using relative path
 if (!$res && file_exists("../main.inc.php")) {
-	$res = @include "../main.inc.php";
+    $res = @include "../main.inc.php";
 }
 if (!$res && file_exists("../../main.inc.php")) {
-	$res = @include "../../main.inc.php";
+    $res = @include "../../main.inc.php";
 }
 if (!$res && file_exists("../../../main.inc.php")) {
-	$res = @include "../../../main.inc.php";
+    $res = @include "../../../main.inc.php";
 }
 if (!$res) {
-	die("Include of main fails");
+    die("Include of main fails");
 }
 
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
@@ -41,14 +41,16 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.formother.class.php';
 require_once DOL_DOCUMENT_ROOT.'/fourn/class/fournisseur.class.php';
 require_once DOL_DOCUMENT_ROOT.'/fourn/class/fournisseur.facture.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
+// It's good practice to include product class if dealing with product types/data
+require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 require_once './class/upinvoicefiles.class.php';
 require_once './class/upinvoiceinvoice.class.php';
 
 // Control access
 if (!$user->rights->facture->lire) accessforbidden();
 
-// Load translations
-$langs->loadLangs(array("upinvoice@upinvoice", "bills", "companies", "other"));
+// Load translations (ensure "Product", "Service", "MatchingProduct" are added to upinvoice.lang)
+$langs->loadLangs(array("upinvoice@upinvoice", "bills", "companies", "other", "products"));
 
 // Get file ID
 $file_id = GETPOST('file_id', 'int');
@@ -88,30 +90,70 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     exit;
 }
 
+// --- START: Product Reference Lookup ---
+// Process lines and search for product matches by reference
+if (!empty($invoice_data['lines']) && is_array($invoice_data['lines'])) {
+    foreach ($invoice_data['lines'] as $key => $line) {
+        // Check if the line has a product reference
+        if (!empty($line['product_ref'])) {
+            // Search product by reference
+            $sql = "SELECT p.rowid, p.ref, p.label, p.description, p.price, p.price_ttc, p.tva_tx, p.fk_product_type";
+            $sql .= " FROM ".MAIN_DB_PREFIX."product as p";
+            $sql .= " WHERE p.ref = '".$db->escape($line['product_ref'])."'";
+            $sql .= " AND p.entity IN (".getEntity('product').")";
+
+            $resql = $db->query($sql);
+            if ($resql && $db->num_rows($resql) > 0) {
+                $product_obj = $db->fetch_object($resql);
+
+                // Check if product type matches (if provided in JSON)
+                $product_type_matches = true;
+                // Note: We use fk_product_type from the found product for consistency later
+                // If the JSON provides a type, we check if it matches the database product type.
+                if (isset($line['product_type']) && $product_obj->fk_product_type != $line['product_type']) {
+                    $product_type_matches = false;
+                    // Optional: Add a warning if types don't match?
+                }
+
+                if ($product_type_matches) {
+                    // Save the product ID and label in the line data
+                    $invoice_data['lines'][$key]['fk_product'] = $product_obj->rowid;
+                    $invoice_data['lines'][$key]['product_label'] = $product_obj->label;
+                    // Ensure the line type reflects the matched product's type
+                    $invoice_data['lines'][$key]['product_type'] = $product_obj->fk_product_type;
+                }
+                $db->free($resql);
+            }
+        }
+    }
+}
+// --- END: Product Reference Lookup ---
+
+
 // Initialize variables
 $action = GETPOST('action', 'alpha');
 $warnings = array();
 $invoice_id = 0;
-$validate_invoice = false; // Nueva variable para controlar si se debe validar la factura
+$validate_invoice = false; // Variable to control if the invoice should be validated
 
 // Actions handling
 if ($action == 'change_supplier') {
-    // Eliminar la referencia al proveedor actual
+    // Remove reference to the current supplier
     if (is_array($invoice_data) && isset($invoice_data['supplier'])) {
-        // Mantenemos los datos del proveedor pero eliminamos su ID
+        // Keep supplier data but remove its ID
         if (isset($invoice_data['supplier']['id'])) {
             unset($invoice_data['supplier']['id']);
         }
         $upinvoicefiles->api_json = json_encode($invoice_data);
     }
-    
-    // Actualizar el registro del archivo
-    $upinvoicefiles->fk_supplier = 0; // Eliminar relación con proveedor
-    $upinvoicefiles->import_step = 2; // Volver al paso de selección de proveedor
+
+    // Update file record
+    $upinvoicefiles->fk_supplier = 0; // Remove supplier relationship
+    $upinvoicefiles->import_step = 2; // Go back to supplier selection step
     $result = $upinvoicefiles->update($user);
-    
+
     if ($result > 0) {
-        // Redirigir a la página de selección de proveedor
+        // Redirect to supplier selection page
         header("Location: ".dol_buildpath('/upinvoice/supplier.php', 1)."?file_id=".$upinvoicefiles->id.'&action=change_supplier_from_invoice');
         exit;
     } else {
@@ -140,7 +182,7 @@ $payment_options = $upinvoiceinvoice->getSupplierPaymentOptions($supplier->id);
 
 // Actions handling
 if ($action == 'create_invoice') {
-    // Comprobar si se ha solicitado la validación
+    // Check if validation was requested
     $validate_invoice = (GETPOST('validate_invoice', 'int') == 1);
 
     $date = dol_mktime(0, 0, 0, GETPOST('datemonth', 'none'), GETPOST('dateday', 'none'), GETPOST('dateyear', 'none'));
@@ -160,9 +202,9 @@ if ($action == 'create_invoice') {
         'total_tva' => price2num(GETPOST('total_tva', 'alpha')),
         'total_ttc' => price2num(GETPOST('total_ttc', 'alpha')),
         'lines' => array(),
-        'validate' => $validate_invoice // Pasar el flag de validación a la función de creación
+        'validate' => $validate_invoice // Pass validation flag to creation function
     );
-    
+
     // Process invoice lines
     $line_count = GETPOST('line_count', 'int');
     for ($i = 0; $i < $line_count; $i++) {
@@ -181,11 +223,12 @@ if ($action == 'create_invoice') {
             'total_ht' => price2num(GETPOST('line_total_ht_'.$i, 'alpha')),
             'total_tva' => price2num(GETPOST('line_total_tva_'.$i, 'alpha')),
             'total_ttc' => price2num(GETPOST('line_total_ttc_'.$i, 'alpha')),
-            'product_type' => GETPOST('line_type_'.$i, 'none')
+            'product_type' => GETPOST('line_type_'.$i, 'none'), // Get product type (0=product, 1=service)
+            'fk_product' => GETPOST('line_fk_product_'.$i, 'none') // Get product ID if matched/set
         );
         $form_invoice_data['lines'][] = $line;
     }
-    
+
     // Create invoice
     $result = $upinvoiceinvoice->createInvoice(
         $form_invoice_data,
@@ -193,19 +236,19 @@ if ($action == 'create_invoice') {
         $user,
         $upinvoicefiles->file_path
     );
-    
+
     if ($result['status'] == 'success') {
         // Update file record with invoice ID
         $upinvoicefiles->fk_invoice = $result['id'];
         $upinvoicefiles->status = 1; // Processed
         $upinvoicefiles->import_step = 4; // Completed
-        // quitamos errores de import_error
+        // Clear import errors
         $upinvoicefiles->import_error = '';
         $update_result = $upinvoicefiles->update($user);
-        
+
         if ($update_result > 0) {
             setEventMessages($result['message'], null);
-            // Redirect to invoice list or step 1 to process another file
+            // Redirect to upload page (or invoice list)
             header("Location: ".dol_buildpath('/upinvoice/upload.php', 1)."?invoice_created=1");
             exit;
         } else {
@@ -220,9 +263,12 @@ if ($action == 'create_invoice') {
 $page_name = "InvoiceValidation";
 $help_url = '';
 $morejs = array(
-    '/upinvoice/js/upinvoiceimport.js'
+    '/upinvoice/js/upinvoiceimport.js',
+    '/upinvoice/js/upinvoice-product-selector.js', // Add the new product selector JS
 );
-$morecss = array('/upinvoice/css/upinvoiceimport.css');
+$morecss = array(
+    '/upinvoice/css/upinvoiceimport.css'
+);
 
 // Page header
 llxHeader('', $langs->trans($page_name), $help_url, '', 0, 0, $morejs, $morecss);
@@ -236,7 +282,6 @@ print '<div class="upinvoiceimport-container">';
 print '<table class="noborder centpercent">';
 print '<tr class="oddeven">';
 print '<td width="50%">';
-//print '<strong>' . $langs->trans("FileName") . ':</strong> ' . dol_escape_htmltag($upinvoicefiles->original_filename) . '<div style="float:right"><button id="preview-doc-btn" class="butAction"><i class="fas fa-eye"></i> ' . $langs->trans("ViewDocument") . '</button></div><br>';
 $previewUrl = dol_buildpath('/viewimage.php', 1).'?modulepart=upinvoice&file=temp/'.urlencode(basename($upinvoicefiles->file_path)).'&cache=0';
 print '<strong>' . $langs->trans("FileName") . ':</strong> ' . dol_escape_htmltag($upinvoicefiles->original_filename);
 print '<div style="float:right">';
@@ -251,7 +296,7 @@ print '</td>';
 print '<td width="50%">';
 print '<strong>' . $langs->trans("Name") . ':</strong> ' . $supplier->name;
 
-// Botón para cambiar de proveedor
+// Button to change supplier
 print ' <a href="' . $_SERVER['PHP_SELF'] . '?action=change_supplier&file_id=' . $upinvoicefiles->id . '" class="butAction butActionDelete butActionSmall">';
 print '<i class="fas fa-exchange-alt"></i> ' . $langs->trans("ChangeSupplier") . '</a><br>';
 
@@ -262,7 +307,7 @@ print '</td>';
 print '</tr>';
 print '</table>';
 
-// Datos de documento para vista previa
+// Document data for preview
 $documentPreviewUrl = dol_buildpath('/viewimage.php', 1).'?modulepart=upinvoice&file=temp/'.urlencode(basename($upinvoicefiles->file_path)).'&cache=0';
 print '<input type="hidden" id="document-preview-path" value="'.$documentPreviewUrl.'">';
 print '<input type="hidden" id="document-preview-type" value="'.$upinvoicefiles->file_type.'">';
@@ -281,7 +326,7 @@ print '<div class="fichehalfleft">';
 if (!empty($warnings)) {
     print '<div class="upinvoiceimport-warnings">';
     print '<h3>' . $langs->trans("WarningsDetected") . '</h3>';
-    
+
     foreach ($warnings as $warning) {
         print '<div class="upinvoiceimport-warning">';
         print '<i class="fas fa-exclamation-triangle"></i> ';
@@ -290,7 +335,7 @@ if (!empty($warnings)) {
         print $langs->trans("Entered") . ': <strong>' . $warning['entered'] . '</strong>';
         print '</div>';
     }
-    
+
     print '</div>';
 }
 
@@ -414,66 +459,110 @@ print '</tr>';
 $line_count = 0;
 if (!empty($invoice_data['lines']) && is_array($invoice_data['lines'])) {
     foreach ($invoice_data['lines'] as $line) {
+        $line_product_type = isset($line['product_type']) ? $line['product_type'] : 0; // Default to product=0
         print '<tr class="invoice-line" id="line_row_'.$line_count.'">';
-        
-        // Description
+
+        // Description + Product selection/info
         print '<td>';
-        print '<textarea name="line_desc_'.$line_count.'" class="flat width100p" style="margin-top: 5px; width: 98%">'.dol_escape_htmltag($line['product_desc']).'</textarea>';
-        print '<input type="hidden" name="line_type_'.$line_count.'" value="'.(isset($line['product_type']) ? $line['product_type'] : '0').'">';
+
+        // --- START: Display Matched Product Info or Product Selector ---
+        // Check if product matching was found
+        if (!empty($line['fk_product'])) {
+            // Product type selector - visible incluso con producto seleccionado
+            print '<div class="product-type-selector" style="margin-bottom:5px;">';
+            print '<select id="line_type_' . $line_count . '" name="line_type_' . $line_count . '" class="flat" style="padding: 6px 5px; height: auto;">';
+            print '<option value="0"' . ($line_product_type == 0 ? ' selected' : '') . '>' . $langs->trans("Product") . '</option>';
+            print '<option value="1"' . ($line_product_type == 1 ? ' selected' : '') . '>' . $langs->trans("Service") . '</option>';
+            print '</select>';
+            print '</div>';
+            
+            // Hidden field for product ID
+            print '<input type="hidden" name="line_fk_product_'.$line_count.'" value="'.intval($line['fk_product']).'">';
+            
+            // Select2 producto con valor preseleccionado
+            print '<div class="product-select-container" style="margin-bottom:5px;">';
+            print '<select id="line_product_' . $line_count . '" name="line_product_' . $line_count . '" class="product-select2" data-line="' . $line_count . '" style="width: 100%;">';
+            // Se añade una opción con el valor preseleccionado para inicializar Select2 con ese valor
+            print '<option value="'.intval($line['fk_product']).'" selected="selected">' . dol_escape_htmltag($line['product_ref'] . ' - ' . $line['product_label']) . '</option>';
+            print '</select>';
+            print '</div>';
+            
+            // Display product reference and label if found
+            print '<div class="product-match-info" style="margin-bottom:5px;">';
+            print '<span class="badge badge-info" style="border-radius: .25rem; padding: 5px; display: inline-block; margin-bottom: 5px;">'; // Basic styling
+            // Use product type from line data (which should reflect the matched product)
+            $product_type_icon = ($line_product_type == 1 ? 'concierge-bell' : 'cube'); // 1=Service, 0=Product
+            print ' <i class="fas fa-' . $product_type_icon . '" title="' . ($line_product_type == 1 ? $langs->trans("Service") : $langs->trans("Product")) . '"></i>&nbsp; ';
+            print $langs->trans("MatchingProduct") . ': ';
+            print '<strong>' . dol_escape_htmltag($line['product_ref']) . '</strong>'; // Display ref used for matching
+            if (!empty($line['product_label'])) {
+                print ' - ' . dol_escape_htmltag($line['product_label']); // Display fetched label
+            }
+            print '</span>';
+            print '</div>';
+        } else {
+            // --- START: Product Type Selector and Product Select2 for non-matched/new lines ---
+            print '<div class="product-type-selector" style="margin-bottom:5px;">';
+            print '<select id="line_type_' . $line_count . '" name="line_type_' . $line_count . '" class="flat" style="padding: 6px 5px; height: auto;">';
+            print '<option value="0"' . ($line_product_type == 0 ? ' selected' : '') . '>' . $langs->trans("Product") . '</option>';
+            print '<option value="1"' . ($line_product_type == 1 ? ' selected' : '') . '>' . $langs->trans("Service") . '</option>';
+            print '</select>';
+            print '</div>';
+            
+            // Select2 for product selection
+            print '<div class="product-select-container" style="margin-bottom:5px;">';
+            print '<select id="line_product_' . $line_count . '" name="line_product_' . $line_count . '" class="product-select2" data-line="' . $line_count . '" style="width: 100%;">';
+            print '<option value=""></option>'; // Empty option for placeholder
+            print '</select>';
+            print '</div>';
+            
+            // Hidden field for product ID (0 for non-matched products)
+            print '<input type="hidden" name="line_fk_product_'.$line_count.'" value="0">';
+        }
+         // --- END: Display Matched Product Info or Product Selector ---
+
+        print '<textarea name="line_desc_'.$line_count.'" class="flat width100p" style="margin-top: 5px; width: 98%">'.dol_escape_htmltag($line['product_desc'] ?? '').'</textarea>';
         print '</td>';
-        
+
         // VAT rate
         print '<td class="center">';
         print '<input type="text" size="5" name="line_tva_tx_'.$line_count.'" value="'.price(isset($line['tva_tx']) ? $line['tva_tx'] : 0).'" class="flat tvaline right" onchange="updateLineTotals('.$line_count.')">';
         print '</td>';
-        
+
         // Quantity
         print '<td class="center">';
         print '<input type="text" size="5" name="line_qty_'.$line_count.'" value="'.price(isset($line['qty']) ? $line['qty'] : 1).'" class="flat qtyline right" onchange="updateLineTotals('.$line_count.')">';
         print '</td>';
-        
+
         // Unit price
         print '<td class="center">';
         print '<input type="text" size="8" name="line_pu_ht_'.$line_count.'" value="'.price(isset($line['pu_ht']) ? $line['pu_ht'] : 0).'" class="flat puhline right" onchange="updateLineTotals('.$line_count.')">';
         print '</td>';
-        
+
         // Total HT
         print '<td class="right">';
         print '<input type="text" size="8" name="line_total_ht_'.$line_count.'" value="'.price(isset($line['total_ht']) ? $line['total_ht'] : 0).'" class="flat totalhtline right" readonly>';
         print '</td>';
-        
+
         // Total VAT
         print '<td class="right">';
         print '<input type="text" size="8" name="line_total_tva_'.$line_count.'" value="'.price(isset($line['total_tva']) ? $line['total_tva'] : 0).'" class="flat totalvaline right">';
         print '</td>';
-        
+
         // Total TTC
         print '<td class="right">';
         print '<input type="text" size="8" name="line_total_ttc_'.$line_count.'" value="'.price(isset($line['total_ttc']) ? $line['total_ttc'] : 0).'" class="flat totalttcline right">';
         print '</td>';
-        
+
         // Actions
         print '<td class="center">';
         print '<a href="#" class="delete-line" data-line="'.$line_count.'"><i class="fas fa-trash"></i></a>';
         print '</td>';
-        
+
         print '</tr>';
         $line_count++;
     }
 }
-
-// Add an empty line at the end
-/* print '<tr class="invoice-line" id="line_row_'.$line_count.'">';
-print '<td><input type="text" name="line_desc_'.$line_count.'" class="flat width100p"><input type="hidden" name="line_type_'.$line_count.'" value="0"></td>';
-print '<td class="center"><input type="text" size="5" name="line_tva_tx_'.$line_count.'" value="'.(!empty($invoice_data['tva_tx']) ? price($invoice_data['tva_tx']) : price(0)).'" class="flat tvaline right" onchange="updateLineTotals('.$line_count.')"></td>';
-print '<td class="center"><input type="text" size="5" name="line_qty_'.$line_count.'" value="1" class="flat qtyline right" onchange="updateLineTotals('.$line_count.')"></td>';
-print '<td class="center"><input type="text" size="8" name="line_pu_ht_'.$line_count.'" value="0" class="flat puhline right" onchange="updateLineTotals('.$line_count.')"></td>';
-print '<td class="right"><input type="text" size="8" name="line_total_ht_'.$line_count.'" value="0" class="flat totalhtline right" readonly></td>';
-print '<td class="right"><input type="text" size="8" name="line_total_tva_'.$line_count.'" value="0" class="flat totalvaline right" readonly></td>';
-print '<td class="right"><input type="text" size="8" name="line_total_ttc_'.$line_count.'" value="0" class="flat totalttcline right" readonly></td>';
-print '<td class="center"><a href="#" class="delete-line" data-line="'.$line_count.'"><i class="fas fa-trash"></i></a></td>';
-print '</tr>';
-$line_count++; */
 
 print '</table>';
 
@@ -489,16 +578,16 @@ print '</div>'; // Close card body
 print '</div>'; // Close card
 
 
-// Submit buttons - Modificado para diferenciar los botones
+// Submit buttons - Modified to differentiate buttons
 print '<div class="center">';
 print '<input type="submit" class="button" name="create_only" value="' . $langs->trans("CreateInvoice") . '">';
 print ' &nbsp; ';
 print '<input type="submit" class="button" name="create_validate" value="' . $langs->trans("CreateAndValidateInvoice") . '" onclick="document.getElementById(\'validate_invoice\').value=\'1\';">';
 print ' &nbsp; ';
-print '<a href="'.dol_buildpath('/upinvoice/upload.php',1).'" class="button">' . $langs->trans("Cancel") . '</a>';
+print '<a href="'.dol_buildpath('/upinvoice/upload.php',1).'" class="button buttonRefused">' . $langs->trans("Cancel") . '</a>';
 print '</div>';
 
-// Campo oculto para indicar si validar o no
+// Hidden field to indicate whether to validate or not
 print '<input type="hidden" id="validate_invoice" name="validate_invoice" value="0">';
 
 print '</form>';
@@ -509,31 +598,53 @@ print '</div>';
 // Add JavaScript for managing invoice lines and calculations
 ?>
 <script type="text/javascript">
+    // Make sure PHP variables used by JS are defined *before* the script that uses them
     var upinvoiceimport_root = '<?php echo dirname($_SERVER['PHP_SELF']); ?>';
     var upinvoiceimport_token = '<?php echo newToken(); ?>';
     var upinvoiceimport_langs = {
-        'Searching': '<?php echo $langs->trans("Searching"); ?>',
-        'FoundSuppliers': '<?php echo $langs->trans("FoundSuppliers"); ?>',
-        'Name': '<?php echo $langs->trans("Name"); ?>',
-        'TaxIDs': '<?php echo $langs->trans("TaxIDs"); ?>',
-        'Address': '<?php echo $langs->trans("Address"); ?>',
-        'Actions': '<?php echo $langs->trans("Actions"); ?>',
-        'SelectThisSupplier': '<?php echo $langs->trans("SelectThisSupplier"); ?>',
-        'NoSuppliersFound': '<?php echo $langs->trans("NoSuppliersFound"); ?>',
-        'ErrorProcessingResponse': '<?php echo $langs->trans("ErrorProcessingResponse"); ?>',
-        'SearchFailed': '<?php echo $langs->trans("SearchFailed"); ?>',
-        'ErrorConfirmingSupplier': '<?php echo $langs->trans("ErrorConfirmingSupplier"); ?>'
+        'Searching': '<?php echo dol_escape_js($langs->trans("Searching")); ?>',
+        'FoundSuppliers': '<?php echo dol_escape_js($langs->trans("FoundSuppliers")); ?>',
+        'Name': '<?php echo dol_escape_js($langs->trans("Name")); ?>',
+        'TaxIDs': '<?php echo dol_escape_js($langs->trans("TaxIDs")); ?>',
+        'Address': '<?php echo dol_escape_js($langs->trans("Address")); ?>',
+        'Actions': '<?php echo dol_escape_js($langs->trans("Actions")); ?>',
+        'SelectThisSupplier': '<?php echo dol_escape_js($langs->trans("SelectThisSupplier")); ?>',
+        'NoSuppliersFound': '<?php echo dol_escape_js($langs->trans("NoSuppliersFound")); ?>',
+        'ErrorProcessingResponse': '<?php echo dol_escape_js($langs->trans("ErrorProcessingResponse")); ?>',
+        'SearchFailed': '<?php echo dol_escape_js($langs->trans("SearchFailed")); ?>',
+        'ErrorConfirmingSupplier': '<?php echo dol_escape_js($langs->trans("ErrorConfirmingSupplier")); ?>',
+        'CannotDeleteLastLine': '<?php echo dol_escape_js($langs->trans("CannotDeleteLastLine")); ?>',
+        'Product': '<?php echo dol_escape_js($langs->trans("Product")); ?>',
+        'Service': '<?php echo dol_escape_js($langs->trans("Service")); ?>',
+        'SelectProduct': '<?php echo dol_escape_js($langs->trans("SelectProduct")); ?>',
+        'SearchProduct': '<?php echo dol_escape_js($langs->trans("SearchProduct")); ?>',
+        'NoProductsFound': '<?php echo dol_escape_js($langs->trans("NoProductsFound")); ?>',
+        'EnterSearchTerm': '<?php echo dol_escape_js($langs->trans("EnterSearchTerm")); ?>',
+        'SearchTermTooShort': '<?php echo dol_escape_js($langs->trans("SearchTermTooShort")); ?>',
+        'All': '<?php echo dol_escape_js($langs->trans("All")); ?>',
+        'Search': '<?php echo dol_escape_js($langs->trans("Search")); ?>',
+        'Select': '<?php echo dol_escape_js($langs->trans("Select")); ?>',
+        'MatchingProduct': '<?php echo dol_escape_js($langs->trans("MatchingProduct")); ?>',
+        'Reference': '<?php echo dol_escape_js($langs->trans("Reference")); ?>',
+        'Label': '<?php echo dol_escape_js($langs->trans("Label")); ?>',
+        'Price': '<?php echo dol_escape_js($langs->trans("Price")); ?>',
+        'VATRate': '<?php echo dol_escape_js($langs->trans("VATRate")); ?>',
+        'ConfirmDeleteFile': '<?php echo $langs->trans("ConfirmDeleteFile"); ?>',
+        'ConfirmReplacePrice': '<?php echo $langs->trans("ConfirmReplacePrice"); ?>',
+        'ConfirmReplaceVAT': '<?php echo $langs->trans("ConfirmReplaceVAT"); ?>',
+        'Current': '<?php echo dol_escape_js($langs->trans("Current")); ?>',
+        'New': '<?php echo dol_escape_js($langs->trans("New")); ?>'
     };
 </script>
 
 <script type="text/javascript">
-$(document).ready(function() {    
+$(document).ready(function() {
     // Add line button
     $("#add-line-btn").click(function(e) {
         e.preventDefault();
         addNewLine();
     });
-    
+
     // Delete line button
     $(document).on('click', '.delete-line', function(e) {
         e.preventDefault();
@@ -546,13 +657,14 @@ $(document).ready(function() {
         updateLineTotals(i);
     }
     
-    // Calculate invoice totals
+    // Calculate initial invoice totals based on loaded data
     updateInvoiceTotals();
-    
-    // Gestionar el botón de "Crear factura" (sin validar)
+
+    // Manage "Create Invoice" button (without validating)
     $("input[name='create_only']").click(function() {
-        // Asegurarse de que el campo validate_invoice está a 0
-        document.getElementById('validate_invoice').value = '0';
+        // Ensure validate_invoice field is 0
+        $('#validate_invoice').val('0');
+        // No return false needed, let the form submit
     });
 });
 
@@ -596,14 +708,37 @@ function updateInvoiceTotals() {
     $("#total_ttc").val(total_ttc.toFixed(2));
 }
 
-// Add a new line
+// Add a new line with product type selector and product select2
 function addNewLine() {
     var lineCount = parseInt($("#line_count").val());
-    var tableBody = $("#invoice_lines_table");
-    var defaultVat = $("input[name='line_tva_tx_0']").val() || "0";
-    
+    var tableBody = $("#invoice_lines_table tbody"); // Target tbody for better structure
+    // Try to get a default VAT rate from the first line if it exists
+    var defaultVatInput = $("input[name='line_tva_tx_0']");
+    var defaultVat = defaultVatInput.length ? defaultVatInput.val() : "0";
+
     var newLine = '<tr class="invoice-line" id="line_row_' + lineCount + '">' +
-        '<td><textarea name="line_desc_' + lineCount + '" class="flat width100p" style="margin-top: 5px; width: 98%"></textarea><input type="hidden" name="line_type_' + lineCount + '" value="0"></td>' +
+        '<td>' +
+            // --- START: Product Type Selector for new lines ---
+            '<div class="product-type-selector" style="margin-bottom:5px;">' +
+                '<select id="line_type_' + lineCount + '" name="line_type_' + lineCount + '" class="flat" style="padding: 6px 5px 5px; height: auto;min-width: 100%;">' +
+                    '<option value="0">' + upinvoiceimport_langs.Product + '</option>' +
+                    '<option value="1">' + upinvoiceimport_langs.Service + '</option>' +
+                '</select>' +
+            '</div>' +
+            // --- END: Product Type Selector ---
+            
+            // --- START: Select2 Product Selector ---
+            '<div class="product-select-container" style="margin-bottom:5px;">' +
+                '<select id="line_product_' + lineCount + '" name="line_product_' + lineCount + '" class="product-select2" data-line="' + lineCount + '" style="width: 100%;">' +
+                    '<option value=""></option>' +
+                '</select>' +
+            '</div>' +
+            // --- END: Select2 Product Selector ---
+            
+            '<textarea name="line_desc_' + lineCount + '" class="flat width100p" style="margin-top: 5px; width: 98%"></textarea>' +
+            // Hidden product ID for new lines (value 0)
+            '<input type="hidden" name="line_fk_product_' + lineCount + '" value="0">' +
+        '</td>' +
         '<td class="center"><input type="text" size="5" name="line_tva_tx_' + lineCount + '" value="' + defaultVat + '" class="flat tvaline right" onchange="updateLineTotals(' + lineCount + ')"></td>' +
         '<td class="center"><input type="text" size="5" name="line_qty_' + lineCount + '" value="1" class="flat qtyline right" onchange="updateLineTotals(' + lineCount + ')"></td>' +
         '<td class="center"><input type="text" size="8" name="line_pu_ht_' + lineCount + '" value="0" class="flat puhline right" onchange="updateLineTotals(' + lineCount + ')"></td>' +
@@ -612,24 +747,35 @@ function addNewLine() {
         '<td class="right"><input type="text" size="8" name="line_total_ttc_' + lineCount + '" value="0" class="flat totalttcline right" readonly></td>' +
         '<td class="center"><a href="#" class="delete-line" data-line="' + lineCount + '"><i class="fas fa-trash"></i></a></td>' +
         '</tr>';
-    
+
     tableBody.append(newLine);
     $("#line_count").val(lineCount + 1);
+    
+    // Trigger an event to notify that a new line was added
+    $(document).trigger('line_added', [lineCount]);
+    
+    // Focus on the product selector for the new line
+    $("#line_product_" + lineCount).focus();
+    
+    // Initialize totals for the new line (will also update invoice totals)
     updateLineTotals(lineCount);
 }
 
 // Delete a line
 function deleteLine(lineNum) {
+    // Check if it's the last line
     if ($('.invoice-line').length <= 1) {
-        alert('<?php echo $langs->trans("CannotDeleteLastLine"); ?>');
+        alert(upinvoiceimport_langs.CannotDeleteLastLine);
         return;
     }
-    
+
     $('#line_row_' + lineNum).remove();
-    updateInvoiceTotals();
+    updateInvoiceTotals(); // Recalculate totals after deletion
+    // Optional: Renumber subsequent lines if needed, but usually not necessary if using unique IDs/names
 }
 </script>
 <?php
 // Footer
 llxFooter();
 $db->close();
+?>

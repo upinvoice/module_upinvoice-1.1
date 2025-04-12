@@ -1,11 +1,11 @@
-# Dolibarr language file - de_DE - upinvoiceimport
+# Dolibarr language file - Source file is en_US - upinvoiceimport
 UpInvoice=UpInvoice
 UpInvoiceImportArea=UpInvoice-Bereich
 UpInvoiceImportDescription=Dieses Modul ermöglicht das Hochladen, Validieren und Registrieren von Lieferantenrechnungen in einem dreistufigen Prozess
 FileUpload=Datei-Upload
 FileUploadTitle=Datei-Upload
 UploadFiles=Dateien hochladen
-UploadFilesDescription=Laden Sie PDF-Dateien oder Bilder von Rechnungen hoch, um sie mit UpInvoice zu verarbeiten
+UploadFilesDescription=Laden Sie PDF-Dateien oder Rechnungsbilder hoch, um sie mit UpInvoice zu verarbeiten
 FilesStatus=Dateistatus
 PendingFiles=Ausstehende Dateien
 ProcessedFiles=Verarbeitete Dateien
@@ -32,7 +32,7 @@ Error=Fehler
 Delete=Löschen
 ConfirmDeleteFile=Sind Sie sicher, dass Sie diese Datei löschen möchten?
 FileDeletedSuccessfully=Datei erfolgreich gelöscht
-DeletionError=Fehler beim Löschen der Datei
+DeletionError=Löschfehler
 DeleteFailed=Löschen fehlgeschlagen
 CannotDeleteProcessingFile=Eine Datei, die gerade verarbeitet wird, kann nicht gelöscht werden
 FileNotFound=Datei nicht gefunden
@@ -44,7 +44,7 @@ ErrorProcessingResponse=Fehler bei der Verarbeitung der Antwort
 LoadFilesFailed=Fehler beim Laden der Dateiliste
 ProcessingFailed=Verarbeitung fehlgeschlagen
 NoFilesYet=Noch keine Dateien
-NoFilesUploaded=Es wurden keine Dateien hochgeladen
+NoFilesUploaded=Keine Dateien hochgeladen
 UploadError=Upload-Fehler
 DatabaseError=Datenbankfehler
 FileAlreadyProcessing=Datei wird bereits verarbeitet
@@ -55,9 +55,9 @@ FilesUploaded=Dateien hochgeladen
 InvalidFileName=Ungültiger Dateiname
 InvalidFileType=Ungültiger Dateityp
 FileTooBig=Datei zu groß
-PartialUpload=Teilupload
+PartialUpload=Teilweiser Upload
 NoFileUploaded=Keine Datei hochgeladen
-TempDirError=Temporärer Verzeichnisfehler
+TempDirError=Fehler im temporären Verzeichnis
 WriteError=Schreibfehler
 ExtensionError=Erweiterungsfehler
 UnknownError=Unbekannter Fehler
@@ -68,6 +68,13 @@ DuplicateFileDetected=Doppelte Datei erkannt
 FileAlreadyUploaded=Datei bereits hochgeladen
 DuplicateFilesSkipped=doppelte Dateien übersprungen
 AllFilesAreDuplicates=Alle Dateien sind bereits hochgeladen
+
+# Confirmations
+ConfirmDeleteFile=Sind Sie sicher, dass Sie diese Datei löschen möchten?
+ConfirmReplacePrice=Möchten Sie den aktuellen Preis durch den Produktpreis ersetzen?
+ConfirmReplaceVAT=Möchten Sie den aktuellen Mehrwertsteuersatz durch den des Produkts ersetzen?
+Current=Aktuell
+New=Neu
 
 # Supplier validation
 SupplierValidation=Lieferantenvalidierung
@@ -81,11 +88,11 @@ PreviewNotAvailable=Vorschau nicht verfügbar
 DetectedSupplierData=Erkannte Lieferantendaten
 SupplierInformation=Lieferanteninformationen
 Name=Name
-NameAlias=Namensalias
+NameAlias=Alias
 ProfId1=Steuer-ID
 VATIntra=USt-IdNr.
 Address=Adresse
-Zip=Postleitzahl
+Zip=PLZ
 Town=Stadt
 Country=Land
 State=Bundesland
@@ -95,19 +102,19 @@ FoundSuppliers=Gefundene Lieferanten
 PleaseSelectSupplier=Bitte wählen Sie einen Lieferanten aus
 TaxIDs=Steuer-IDs
 SelectThisSupplier=Diesen Lieferanten auswählen
-SearchSupplier=Lieferanten suchen
+SearchSupplier=Lieferant suchen
 TaxID=Steuer-ID
 Search=Suchen
-SearchBy=Suche nach Name, Steuer-ID oder anderen Kennungen
+SearchBy=Suche nach Name, Steuer-ID oder beliebigem Identifikator
 CreateNewSupplier=Neuen Lieferanten erstellen
-CreateSupplier=Lieferanten erstellen
+CreateSupplier=Lieferant erstellen
 NoSupplierDataInJSON=Keine Lieferantendaten im JSON gefunden
 ErrorUpdatingFile=Fehler beim Aktualisieren der Datei
 ErrorCreatingSupplier=Fehler beim Erstellen des Lieferanten
 FileNotProcessed=Datei nicht verarbeitet
 InvalidJSONData=Ungültige JSON-Daten
 NoFileSelected=Keine Datei ausgewählt
-ChangeSupplier=Lieferanten ändern
+ChangeSupplier=Lieferant ändern
 
 # Invoice validation
 InvoiceValidation=Rechnungsvalidierung
@@ -127,7 +134,7 @@ VAT=MwSt.
 Qty=Menge
 PriceUHT=Einzelpreis netto
 TotalHT=Gesamtbetrag netto
-TotalVAT=MwSt. gesamt
+TotalVAT=Gesamtbetrag MwSt.
 TotalTTC=Gesamtbetrag brutto
 AddLine=Zeile hinzufügen
 CreateInvoice=Rechnung erstellen
@@ -138,10 +145,38 @@ WarningsDetected=Warnungen erkannt
 Detected=Erkannt
 Entered=Eingegeben
 TotalAmountMismatch=Gesamtbetrag stimmt nicht überein
-VATAmountMismatch=MwSt.-Betrag stimmt nicht überein
-TotalTTCMismatch=Bruttobetrag stimmt nicht überein
+VATAmountMismatch=MwSt-Betrag stimmt nicht überein
+TotalTTCMismatch=Gesamtbetrag brutto stimmt nicht überein
 DateMismatch=Datum stimmt nicht überein
 LineCountMismatch=Zeilenanzahl stimmt nicht überein
+CompletionDate=Abschlussdatum
+TotalAmountWarning=Betragsdifferenz erkannt
+AmountDetected=Erkannter Betrag
+AmountSaved=Gespeicherter Betrag
+
+# Products
+Product=Produkt
+Service=Dienstleistung
+Products=Produkte
+Services=Dienstleistungen
+MatchingProduct=Passendes Produkt
+SearchProduct=Produkt suchen
+SelectProduct=Produkt auswählen
+NoProductsFound=Keine Produkte gefunden
+EnterSearchTerm=Suchbegriff eingeben
+SearchTermTooShort=Suchbegriff zu kurz
+ProductsFound=%s Produkte gefunden
+SearchTermRequired=Suchbegriff erforderlich
+All=Alle
+Search=Suchen
+Select=Auswählen
+Reference=Referenz
+Label=Bezeichnung
+Price=Preis
+VATRate=MwSt-Satz
+Actions=Aktionen
+
+# API Errors
 SupplierIdRequired=Lieferanten-ID erforderlich
 ErrorAddingInvoiceLine=Fehler beim Hinzufügen der Rechnungszeile
 ErrorValidatingInvoice=Fehler beim Validieren der Rechnung
@@ -154,10 +189,10 @@ SupplierNotFound=Lieferant nicht gefunden
 # Module configuration
 UpInvoiceSetup=UpInvoice-Einrichtung
 APIUrl=API-URL
-APIUrlHelp=URL der UpInvoice-API (Beispiel: https://upinvoice.eu/api/process-invoice)
+APIUrlHelp=UpInvoice API-URL (Beispiel: https://upinvoice.eu/api/process-invoice)
 APIKey=API-Schlüssel
 APIKeyHelp=Authentifizierungsschlüssel für die UpInvoice-API
-HowToGetAPIKey=Um den Schlüssel zu erhalten, erstellen Sie ein Konto bei <a href="https://upinvoice.eu" target="_blank">UpInvoice.eu</a> und gehen Sie zum <a href="https://upinvoice.eu/api/tokens" target="_blank"><strong>API-Schlüsselbereich</strong></a>.
+HowToGetAPIKey=Um den Schlüssel zu erhalten, erstellen Sie ein Konto auf <a href="https://upinvoice.eu" targe="_blank">UpInvoice.eu</a> und gehen Sie zum <a href="https://upinvoice.eu/api/tokens" target="_blank"><strong>API-Schlüsselbereich</strong></a>.
 Save=Speichern
 TestAPIConnection=API-Verbindung testen
 APIConfigurationMissing=API-Konfiguration fehlt
@@ -167,7 +202,7 @@ APIConnectionFailed=API-Verbindung fehlgeschlagen
 Settings=Einstellungen
 
 # File processing
-consumedPlans=Sie haben bereits alle auf UpInvoice.eu verfügbaren Guthaben aufgebraucht. Bitte erweitern oder erneuern Sie Ihren Plan.
+consumedPlans=Sie haben bereits alle verfügbaren Guthaben auf UpInvoice.eu verbraucht. Bitte erweitern oder erneuern Sie Ihren Plan.
 ProcessAllFiles=Alle Dateien verarbeiten
 PauseProcessing=Verarbeitung pausieren
 ResumeProcessing=Verarbeitung fortsetzen
@@ -177,7 +212,7 @@ ZoomIn=Vergrößern
 ZoomOut=Verkleinern
 RotateLeft=Nach links drehen
 RotateRight=Nach rechts drehen
-AllFilesQueued=Alle Dateien in die Warteschlange gestellt
+AllFilesQueued=Alle Dateien in der Warteschlange
 ProcessingFiles=Dateien werden verarbeitet
 ParallelProcessing=Parallele Verarbeitung
 UploadProgress=Upload-Fortschritt
@@ -185,7 +220,7 @@ ProcessingProgress=Verarbeitungsfortschritt
 Preview=Vorschau
 FileDetails=Dateidetails
 FileType=Dateityp
-FileUploadDate=Upload-Datum
+FileUploadDate=Datei-Upload-Datum
 ProcessingTime=Verarbeitungszeit
 EstimatedTimeRemaining=Geschätzte verbleibende Zeit
 ViewDetailedPreview=Detaillierte Vorschau anzeigen
@@ -195,13 +230,13 @@ QueueStatus=Warteschlangenstatus
 QueuePaused=Warteschlange pausiert
 QueueActive=Warteschlange aktiv
 AddToQueue=Zur Warteschlange hinzufügen
-RemoveFromQueue=Aus der Warteschlange entfernen
+RemoveFromQueue=Aus Warteschlange entfernen
 ValidateInvoice=Rechnung validieren
 ViewInvoice=Rechnung anzeigen
 
 # File statuses
 FinishedFiles=Abgeschlossene Dateien
-PendingProcessing=Dateien in Bearbeitung
+PendingProcessing=Dateien warten auf Verarbeitung
 ProcessedInvoices=Verarbeitete Rechnungen
 NoPendingFiles=Keine ausstehenden Dateien
 NoFinishedFiles=Keine abgeschlossenen Dateien
@@ -209,19 +244,12 @@ NoFinishedFiles=Keine abgeschlossenen Dateien
 # Search
 Searching=Suche läuft
 NoSuppliersFound=Keine Lieferanten gefunden
-SearchByName=Nach Namen suchen
+SearchByName=Nach Name suchen
 SearchByTaxID=Nach Steuer-ID suchen
 SearchFailed=Suche fehlgeschlagen
 ErrorConfirmingSupplier=Fehler bei der Bestätigung des Lieferanten
 SupplierConfirmed=Lieferant bestätigt
 MissingParameters=Fehlende Parameter
-
-# Finished files view
-CompletionDate=Abschlussdatum
-InvoiceDate=Rechnungsdatum
-TotalAmountWarning=Betragsdifferenz erkannt
-AmountDetected=Erkannter Betrag
-AmountSaved=Gespeicherter Betrag
 
 # Processing status
 ProcessingInProgress=Verarbeitung läuft. Bitte warten Sie, bis sie abgeschlossen ist, bevor Sie eine andere Datei verarbeiten

@@ -1006,6 +1006,149 @@ input[readonly] {
     text-decoration: none;
 }
 
+/* Estilos para el buscador de productos */
+.product-selected {
+    display: inline-block;
+    margin-left: 5px;
+    color: #28a745;
+}
+
+.text-danger {
+    color: #dc3545;
+}
+
+.text-success {
+    color: #28a745;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Estilos para el buscador de productos Select2 */
+.product-select-container {
+    margin-bottom: 8px;
+}
+
+.select2-product {
+    padding: 5px 0;
+}
+
+.select2-product .product-ref {
+    font-weight: bold;
+}
+
+.select2-product .product-label {
+    color: #333;
+}
+
+.select2-product .product-price {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 3px;
+}
+
+.select2-product .badge {
+    margin-left: 5px;
+    padding: 2px 5px;
+    font-size: 11px;
+    border-radius: 3px;
+}
+
+.select2-product .badge-success {
+    background-color: #d4edda;
+    color: #155724 !important;
+}
+
+/* Highlight lines with product */
+tr.invoice-line.has-product {
+    background-color: #f8f9fa;
+}
+
+.product-selected {
+    display: inline-block;
+    margin-left: 5px;
+    color: #28a745;
+}
+
+.text-danger {
+    color: #dc3545;
+}
+
+.text-success {
+    color: #28a745;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Estilos para alinear filas de tabla */
+tr.invoice-line td.center {
+    vertical-align: middle;
+}
+
+tr.invoice-line td.right {
+    vertical-align: middle;
+}
+
+.product-type-selector {
+    display: inline-block;
+    margin-right: 15px;
+    width: 30%;
+}
+
+.product-type-selector select {
+    width: 100%;
+}
+
+.product-select-container {
+    display: inline-block;
+    width: calc(70% - 15px);
+}
+
+.product-select-container span.select2-selection {
+    border-bottom: 1px solid var(--inputbordercolor) !important;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.product-select-container .select2-selection__placeholder {
+    line-height: 28px;
+    color: #999;
+}
+
+/* Estilos para la visualización de imágenes  */
+.thumbnail-image {
+    max-width: 60px;
+    max-height: 60px;
+    object-fit: contain;
+}
+
+/* Añadir estilos para mantener los botones de acción en línea */
+.invoice-actions a, 
+.invoice-actions button {
+    display: inline-block;
+    margin-left: 5px;
+}
+
+/* Estilos para el botón de línea */
+#add-line-btn {
+    margin-top: 10px;
+    padding: 6px 12px;
+}
+
+/* Mejoras para inputs numéricos */
+input.qtyline, 
+input.puhline, 
+input.tvaline, 
+input.totalhtline, 
+input.totalvaline, 
+input.totalttcline {
+    width: 60px;
+    text-align: right;
+}
+
 /* Tabs styling de upload.php */
 .tabs {
     margin-top: 30px;
@@ -1123,11 +1266,6 @@ input[readonly] {
 
 .ui-dialog .ui-resizable-se:hover {
     opacity: 1;
-}
-
-/* Corregir issue con diálogos modales y select2 */
-.select2-container {
-    z-index: 10000;
 }
 
 /* Mejorar apariencia específica para dialogs de previsualización de documentos */
