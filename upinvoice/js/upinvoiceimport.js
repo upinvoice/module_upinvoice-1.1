@@ -549,6 +549,11 @@ var UpInvoiceModal = {
 
 // Function to load and display files list
 function loadFilesList() {
+    if (typeof upinvoiceimport_active_tab === 'undefined') {
+        // Estamos en otra página (invoice.php o supplier.php), no necesitamos cargar la lista
+        return;
+    }
+    
     // Mostrar un indicador de carga pero sin eliminar el contenido existente
     var loadingIndicator = '<div class="info-box" style="margin-bottom:10px;"><i class="fas fa-sync fa-spin"></i> ' + 
                           upinvoiceimport_langs.Loading + '...</div>';

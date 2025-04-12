@@ -147,6 +147,7 @@ ErrorAddingInvoiceLine=Error al añadir línea de factura
 ErrorValidatingInvoice=Error al validar la factura
 ErrorAttachingDocument=Error al adjuntar el documento
 InvoiceCreatedSuccessfully=Factura creada correctamente
+InvoiceCreatedAndValidatedSuccessfully=Factura creada y validada correctamente
 NoSupplierSelected=No se ha seleccionado proveedor
 SupplierNotFound=Proveedor no encontrado
 

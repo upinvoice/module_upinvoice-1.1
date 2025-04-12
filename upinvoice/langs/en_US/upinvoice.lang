@@ -147,6 +147,7 @@ ErrorAddingInvoiceLine=Error adding invoice line
 ErrorValidatingInvoice=Error validating invoice
 ErrorAttachingDocument=Error attaching document
 InvoiceCreatedSuccessfully=Invoice created successfully
+InvoiceCreatedAndValidatedSuccessfully=Invoice created and validated successfully
 NoSupplierSelected=No supplier selected
 SupplierNotFound=Supplier not found
 

@@ -107,10 +107,14 @@ class UpInvoiceInvoice
                 }
             }
             
-            // Validate invoice
-            $result_validate = $invoice->validate($user);
-            if ($result_validate < 0) {
-                throw new Exception($langs->trans('ErrorValidatingInvoice') . ': ' . $invoice->error);
+            // Validar la factura solo si se solicita explícitamente
+            $shouldValidate = isset($invoiceData['validate']) && $invoiceData['validate'] === true;
+            
+            if ($shouldValidate) {
+                $result_validate = $invoice->validate($user);
+                if ($result_validate < 0) {
+                    throw new Exception($langs->trans('ErrorValidatingInvoice') . ': ' . $invoice->error);
+                }
             }
             
             // Attach document if provided
@@ -123,9 +127,15 @@ class UpInvoiceInvoice
             
             $this->db->commit();
             
-            $result['status'] = 'success';
-            $result['id'] = $invoice_id;
-            $result['message'] = $langs->trans('InvoiceCreatedSuccessfully');
+            if ($shouldValidate) {
+                $result['status'] = 'success';
+                $result['id'] = $invoice_id;
+                $result['message'] = $langs->trans('InvoiceCreatedAndValidatedSuccessfully');
+            } else {
+                $result['status'] = 'success';
+                $result['id'] = $invoice_id;
+                $result['message'] = $langs->trans('InvoiceCreatedSuccessfully');
+            }
             
             return $result;
         } catch (Exception $e) {

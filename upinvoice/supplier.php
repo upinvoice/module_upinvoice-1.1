@@ -259,7 +259,7 @@ print '<table class="noborder centpercent">';
 print '<tr class="oddeven">';
 print '<td width="50%">';
 //print '<strong>' . $langs->trans("FileName") . ':</strong> ' . dol_escape_htmltag($upinvoicefiles->original_filename) . '<div style="float:right"><button id="preview-doc-btn" class="butAction"><i class="fas fa-eye"></i> ' . $langs->trans("ViewDocument") . '</button></div><br>';
-$previewUrl = dol_buildpath('/viewimage.php', 1).'?modulepart=upinvoice&file=temp/'.basename($upinvoicefiles->file_path).'&cache=0';
+$previewUrl = dol_buildpath('/viewimage.php', 1).'?modulepart=upinvoice&file=temp/'.urlencode(basename($upinvoicefiles->file_path)).'&cache=0';
 print '<strong>' . $langs->trans("FileName") . ':</strong> ' . dol_escape_htmltag($upinvoicefiles->original_filename);
 print '<div style="float:right">';
 print '<button id="preview-doc-btn" class="butAction" ';
@@ -277,7 +277,7 @@ print '</table>';
 print '</div>'; // Close file info
 
 // Datos de documento para vista previa
-$documentPreviewUrl = dol_buildpath('/viewimage.php', 1).'?modulepart=upinvoice&file=temp/'.basename($upinvoicefiles->file_path).'&cache=0';
+$documentPreviewUrl = dol_buildpath('/viewimage.php', 1).'?modulepart=upinvoice&file=temp/'.urlencode(basename($upinvoicefiles->file_path)).'&cache=0';
 print '<input type="hidden" id="document-preview-path" value="'.$documentPreviewUrl.'">';
 print '<input type="hidden" id="document-preview-type" value="'.$upinvoicefiles->file_type.'">';
 

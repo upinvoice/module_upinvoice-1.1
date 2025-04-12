@@ -92,6 +92,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 $action = GETPOST('action', 'alpha');
 $warnings = array();
 $invoice_id = 0;
+$validate_invoice = false; // Nueva variable para controlar si se debe validar la factura
 
 // Actions handling
 if ($action == 'change_supplier') {
@@ -139,6 +140,8 @@ $payment_options = $upinvoiceinvoice->getSupplierPaymentOptions($supplier->id);
 
 // Actions handling
 if ($action == 'create_invoice') {
+    // Comprobar si se ha solicitado la validación
+    $validate_invoice = (GETPOST('validate_invoice', 'int') == 1);
 
     $date = dol_mktime(0, 0, 0, GETPOST('datemonth', 'none'), GETPOST('dateday', 'none'), GETPOST('dateyear', 'none'));
     if(!$date){
@@ -156,7 +159,8 @@ if ($action == 'create_invoice') {
         'total_ht' => price2num(GETPOST('total_ht', 'alpha')),
         'total_tva' => price2num(GETPOST('total_tva', 'alpha')),
         'total_ttc' => price2num(GETPOST('total_ttc', 'alpha')),
-        'lines' => array()
+        'lines' => array(),
+        'validate' => $validate_invoice // Pasar el flag de validación a la función de creación
     );
     
     // Process invoice lines
@@ -233,7 +237,7 @@ print '<table class="noborder centpercent">';
 print '<tr class="oddeven">';
 print '<td width="50%">';
 //print '<strong>' . $langs->trans("FileName") . ':</strong> ' . dol_escape_htmltag($upinvoicefiles->original_filename) . '<div style="float:right"><button id="preview-doc-btn" class="butAction"><i class="fas fa-eye"></i> ' . $langs->trans("ViewDocument") . '</button></div><br>';
-$previewUrl = dol_buildpath('/viewimage.php', 1).'?modulepart=upinvoice&file=temp/'.basename($upinvoicefiles->file_path).'&cache=0';
+$previewUrl = dol_buildpath('/viewimage.php', 1).'?modulepart=upinvoice&file=temp/'.urlencode(basename($upinvoicefiles->file_path)).'&cache=0';
 print '<strong>' . $langs->trans("FileName") . ':</strong> ' . dol_escape_htmltag($upinvoicefiles->original_filename);
 print '<div style="float:right">';
 print '<button id="preview-doc-btn" class="butAction" ';
@@ -259,7 +263,7 @@ print '</tr>';
 print '</table>';
 
 // Datos de documento para vista previa
-$documentPreviewUrl = dol_buildpath('/viewimage.php', 1).'?modulepart=upinvoice&file=temp/'.basename($upinvoicefiles->file_path).'&cache=0';
+$documentPreviewUrl = dol_buildpath('/viewimage.php', 1).'?modulepart=upinvoice&file=temp/'.urlencode(basename($upinvoicefiles->file_path)).'&cache=0';
 print '<input type="hidden" id="document-preview-path" value="'.$documentPreviewUrl.'">';
 print '<input type="hidden" id="document-preview-type" value="'.$upinvoicefiles->file_type.'">';
 
@@ -485,14 +489,17 @@ print '</div>'; // Close card body
 print '</div>'; // Close card
 
 
-// Submit buttons
+// Submit buttons - Modificado para diferenciar los botones
 print '<div class="center">';
-print '<input type="submit" class="button" value="' . $langs->trans("CreateInvoice") . '">';
+print '<input type="submit" class="button" name="create_only" value="' . $langs->trans("CreateInvoice") . '">';
 print ' &nbsp; ';
-print '<input type="submit" class="button" value="' . $langs->trans("CreateAndValidateInvoice") . '">';
+print '<input type="submit" class="button" name="create_validate" value="' . $langs->trans("CreateAndValidateInvoice") . '" onclick="document.getElementById(\'validate_invoice\').value=\'1\';">';
 print ' &nbsp; ';
 print '<a href="'.dol_buildpath('/upinvoice/upload.php',1).'" class="button">' . $langs->trans("Cancel") . '</a>';
 print '</div>';
+
+// Campo oculto para indicar si validar o no
+print '<input type="hidden" id="validate_invoice" name="validate_invoice" value="0">';
 
 print '</form>';
 
@@ -541,6 +548,12 @@ $(document).ready(function() {
     
     // Calculate invoice totals
     updateInvoiceTotals();
+    
+    // Gestionar el botón de "Crear factura" (sin validar)
+    $("input[name='create_only']").click(function() {
+        // Asegurarse de que el campo validate_invoice está a 0
+        document.getElementById('validate_invoice').value = '0';
+    });
 });
 
 // Update line totals
