@@ -390,10 +390,32 @@ class UpInvoiceFiles extends CommonObject
             $cFile = base64_encode(file_get_contents($this->file_path));
             $cFile = 'data:'.$this->file_type.';base64,'.$cFile;
 
+            //Definitmos $company_tax_id... $conf->global->MAIN_INFO_TVAINTRA si existe quitando las 2 primeras letras o $conf->global->MAIN_INFO_SIREN si existe o $conf->global->MAIN_INFO_SIRET si existe o $conf->global->MAIN_INFO_APE si existe. Si no mostramos un error para que el usuario rellene el campo de la empresa
+            $companyTaxId = '';
+            if (!empty($conf->global->MAIN_INFO_TVAINTRA)) {
+                // Remove first 2 characters si son letras...
+                if (preg_match('/^[A-Z]{2}/', $conf->global->MAIN_INFO_TVAINTRA)) {
+                    $companyTaxId = substr($conf->global->MAIN_INFO_TVAINTRA, 2); // Remove first 2 characters
+                } else if (preg_match('/^[a-z]{2}/', $conf->global->MAIN_INFO_TVAINTRA)) {
+                    $companyTaxId = substr($conf->global->MAIN_INFO_TVAINTRA, 2); // Remove first 2 characters
+                } {
+                    $companyTaxId = $conf->global->MAIN_INFO_TVAINTRA; // Use as is
+                }
+            } elseif (!empty($conf->global->MAIN_INFO_SIREN)) {
+                $companyTaxId = $conf->global->MAIN_INFO_SIREN;
+            } elseif (!empty($conf->global->MAIN_INFO_SIRET)) {
+                $companyTaxId = $conf->global->MAIN_INFO_SIRET;
+            } elseif (!empty($conf->global->MAIN_INFO_APE)) {
+                $companyTaxId = $conf->global->MAIN_INFO_APE;
+            }
+            if (empty($companyTaxId)) {
+                throw new Exception("Company tax ID not configured. Please fill in the company information.");
+            }
+
             $post = array(
                 'invoice_file' => $cFile ,
                 'company_name' => $conf->global->MAIN_INFO_SOCIETE_NOM,
-                'company_tax_id' => $conf->global->MAIN_INFO_SIREN
+                'company_tax_id' => $companyTaxId,
             );
             
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
